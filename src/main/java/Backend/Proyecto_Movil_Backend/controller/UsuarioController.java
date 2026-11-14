@@ -1,7 +1,9 @@
 package Backend.Proyecto_Movil_Backend.controller;
 
+import Backend.Proyecto_Movil_Backend.dto.LoginRequest;
 import Backend.Proyecto_Movil_Backend.model.Usuario;
 import Backend.Proyecto_Movil_Backend.service.UsuarioService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,21 +11,24 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Base: http://localhost:8080/v1/api/usuarios
+ * (desde el emulador Android: http://10.0.2.2:8080/v1/api/usuarios)
+ */
 @RestController
-@RequestMapping("v1/api/usuarios")
+@RequestMapping("/v1/api/usuarios")
 public class UsuarioController {
 
     @Autowired
     private UsuarioService usuarioService;
 
-    // GET: Listar todos los usuarios -> http://localhost:8080/api/usuarios
+    // GET /v1/api/usuarios
     @GetMapping
     public ResponseEntity<List<Usuario>> listarTodos() {
-        List<Usuario> usuarios = usuarioService.listarTodos();
-        return ResponseEntity.ok(usuarios);
+        return ResponseEntity.ok(usuarioService.listarTodos());
     }
 
-    // GET: Buscar usuario por ID -> http://localhost:8080/api/usuarios/{id}
+    // GET /v1/api/usuarios/{id}
     @GetMapping("/{id}")
     public ResponseEntity<Usuario> obtenerPorId(@PathVariable Long id) {
         return usuarioService.obtenerPorId(id)
@@ -31,36 +36,28 @@ public class UsuarioController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // POST: Crear un nuevo usuario -> http://localhost:8080/api/usuarios
+    // POST /v1/api/usuarios/login  -> 200 usuario | 401 credenciales | 403 cuenta inactiva
+    @PostMapping("/login")
+    public ResponseEntity<Usuario> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(usuarioService.login(request.correo(), request.password()));
+    }
+
+    // POST /v1/api/usuarios -> 201 | 400 | 409 (correo repetido)
     @PostMapping
-    public ResponseEntity<?> crearUsuario(@RequestBody Usuario usuario) {
-        try {
-            Usuario nuevoUsuario = usuarioService.guardarUsuario(usuario);
-            return ResponseEntity.status(HttpStatus.CREATED).body(nuevoUsuario);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-        }
+    public ResponseEntity<Usuario> crearUsuario(@Valid @RequestBody Usuario usuario) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.guardarUsuario(usuario));
     }
 
-    // PUT: Actualizar un usuario existente -> http://localhost:8080/api/usuarios/{id}
+    // PUT /v1/api/usuarios/{id} -> 200 | 404 | 409
     @PutMapping("/{id}")
-    public ResponseEntity<?> actualizarUsuario(@PathVariable Long id, @RequestBody Usuario usuarioDetalles) {
-        try {
-            Usuario usuarioActualizado = usuarioService.actualizarUsuario(id, usuarioDetalles);
-            return ResponseEntity.ok(usuarioActualizado);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<Usuario> actualizarUsuario(@PathVariable Long id, @Valid @RequestBody Usuario usuario) {
+        return ResponseEntity.ok(usuarioService.actualizarUsuario(id, usuario));
     }
 
-    // DELETE: Eliminar un usuario -> http://localhost:8080/api/usuarios/{id}
+    // DELETE /v1/api/usuarios/{id} -> 204 | 404
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> eliminarUsuario(@PathVariable Long id) {
-        try {
-            usuarioService.eliminarUsuario(id);
-            return ResponseEntity.noContent().build();
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
-        }
+    public ResponseEntity<Void> eliminarUsuario(@PathVariable Long id) {
+        usuarioService.eliminarUsuario(id);
+        return ResponseEntity.noContent().build();
     }
 }
