@@ -1,6 +1,8 @@
 package Backend.Proyecto_Movil_Backend.service;
 
 import Backend.Proyecto_Movil_Backend.model.Usuario;
+import Backend.Proyecto_Movil_Backend.repository.OportunidadRepository;
+import Backend.Proyecto_Movil_Backend.repository.SeguimientoRepository;
 import Backend.Proyecto_Movil_Backend.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -15,6 +17,12 @@ public class UsuarioService {
 
     @Autowired
     private UsuarioRepository usuarioRepository;
+
+    @Autowired
+    private OportunidadRepository oportunidadRepository;
+
+    @Autowired
+    private SeguimientoRepository seguimientoRepository;
 
     private static String normalizar(String correo) {
         return correo == null ? null : correo.trim().toLowerCase();
@@ -73,6 +81,11 @@ public class UsuarioService {
     public void eliminarUsuario(Long id) {
         if (!usuarioRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "No se puede eliminar, el usuario no existe.");
+        }
+        // FK RESTRICT: un usuario con oportunidades o seguimientos no se puede borrar (se desactiva)
+        if (oportunidadRepository.existsByResponsableId(id) || seguimientoRepository.existsByUsuarioId(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "No se puede eliminar: el usuario tiene oportunidades o seguimientos asociados. Desactive la cuenta.");
         }
         usuarioRepository.deleteById(id);
     }

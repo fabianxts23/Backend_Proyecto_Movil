@@ -12,17 +12,32 @@ API REST (Spring Boot 4, Java 21, MySQL) del proyecto móvil **Oportunidades Cor
 ```
 Swagger: http://localhost:8080/swagger-ui/index.html
 
-## Endpoints (`/v1/api/usuarios`)
-| Método | Ruta | Descripción |
+## Tablas MySQL (se crean solas con `ddl-auto=update`)
+| Tabla | Equivale en la app (Room) | Relaciones |
 |---|---|---|
-| GET | `/v1/api/usuarios` | Lista usuarios |
-| GET | `/v1/api/usuarios/{id}` | Un usuario |
-| POST | `/v1/api/usuarios/login` | `{correo, password}` → 200 / 401 / 403 |
-| POST | `/v1/api/usuarios` | Crea (201, 400, 409 correo repetido) |
-| PUT | `/v1/api/usuarios/{id}` | Actualiza |
-| DELETE | `/v1/api/usuarios/{id}` | Elimina |
+| `usuarios` | UsuarioEntity | — |
+| `organizaciones` | OrganizacionEntity | — |
+| `contactos` | ContactoEntity | → organizaciones (CASCADE) |
+| `oportunidades` | OportunidadEntity | → organizaciones (RESTRICT), → usuarios `responsable_id` (RESTRICT) |
+| `seguimientos` | SeguimientoEntity | → oportunidades (CASCADE), → usuarios (RESTRICT) |
+| `evidencias_foto` | EvidenciaFotoEntity | → oportunidades (CASCADE) |
 
-La contraseña se acepta al escribir pero nunca se devuelve en las respuestas.
+Los enums se guardan como texto (`EnumType.STRING`) y las fechas como epoch en milisegundos (`Long`), igual que `fechaCreacion` de usuarios.
+El JSON usa los mismos nombres de campo que la app (`organizacionId`, `responsableId`, `resAsistentes`, ...).
+
+## Endpoints
+Todos bajo `/v1/api/`. Errores: 400 validación / FK inexistente, 404 no existe, 409 conflicto.
+
+| Recurso | Operaciones |
+|---|---|
+| `usuarios` | GET, GET `/{id}`, POST `/login` `{correo, password}` (200/401/403), POST, PUT `/{id}`, DELETE `/{id}` (409 si tiene oportunidades o seguimientos) |
+| `organizaciones` | GET, GET `/{id}`, POST, PUT `/{id}`, DELETE `/{id}` (409 si tiene oportunidades; borra sus contactos) |
+| `contactos` | GET `?organizacionId=`, GET `/{id}`, POST, PUT `/{id}`, DELETE `/{id}` |
+| `oportunidades` | GET `?estado=&responsableId=&organizacionId=`, GET `/{id}`, POST, PUT `/{id}` (409 si está cerrada y se cambia el estado), DELETE `/{id}` (borra seguimientos y evidencias) |
+| `seguimientos` | GET `?oportunidadId=`, GET `/{id}`, POST (historial: no se edita ni se borra) |
+| `evidencias` | GET `?oportunidadId=` (obligatorio), GET `/{id}`, POST, DELETE `/{id}` — guarda solo la `uri` de la foto |
+
+La contraseña de usuarios se acepta al escribir pero nunca se devuelve en las respuestas.
 
 ## Conexión con la app Android
 - Emulador: la app usa `http://10.0.2.2:8080/` (10.0.2.2 = tu PC visto desde el emulador).

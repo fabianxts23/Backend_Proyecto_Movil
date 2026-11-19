@@ -1,0 +1,6 @@
+package Backend.Proyecto_Movil_Backend.model;
+
+public enum TipoOrganizacion {
+    MUNICIPALIDAD, INSTITUCION_PUBLICA, INSTITUCION_PRIVADA, ORGANIZADOR_EVENTOS,
+    CENTRO_COMERCIAL, ASOCIACION, OTRA
+}
